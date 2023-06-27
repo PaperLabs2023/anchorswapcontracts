@@ -9,7 +9,7 @@ import "./StableAlgorithm.sol";
 
 pragma solidity ^0.8.17;
 
-contract AnchorSwap is IAMM{
+contract PaperFinance is IAMM{
 //全局变量
 
 
@@ -26,7 +26,8 @@ contract AnchorSwap is IAMM{
     address  WETHAddr;
     //mapping (address => bool) public isStablePair;
     mapping (address=>uint) stablelpParameterA;
-    mapping (address => address[2]) public lpInfo;
+    mapping (address => address[2]) _lpInfo;
+    mapping (address => bool) _lpSwapStatic;
 
 
 
@@ -69,6 +70,9 @@ contract AnchorSwap is IAMM{
     function setWeth(address _wethAddr) external onlyOwner{
         WETH = IWETH(_wethAddr);
         WETHAddr = _wethAddr;
+    }
+    function setLpSwapStatic(address _lpAddr, bool _static) external onlyOwner{
+        _lpSwapStatic[_lpAddr] = _static;
     }
 
 //业务合约
@@ -347,6 +351,7 @@ contract AnchorSwap is IAMM{
             findStableLpToken[_tokenIn][_tokenOut] != address(0),
             "invalid token"
         );
+        
         require(_amountIn > 0, "amount in = 0");
         require(_tokenIn != _tokenOut);
         require(_amountIn >= 1000, "require amountIn >= 1000 wei token");
@@ -355,6 +360,7 @@ contract AnchorSwap is IAMM{
         IERC20 tokenIn = IERC20(_tokenIn);
         IERC20 tokenOut = IERC20(_tokenOut);
         address lptokenAddr = findStableLpToken[_tokenIn][_tokenOut];
+        require(!getLpSwapStatic(lptokenAddr),"swapPair pausing");
         uint reserveIn = reserve[lptokenAddr][_tokenIn];
         uint reserveOut = reserve[lptokenAddr][_tokenOut];
 
@@ -429,7 +435,7 @@ contract AnchorSwap is IAMM{
         findLpToken[addrToken0][addrToken1] = lptokenAddr;
         findLpToken[addrToken1][addrToken0] = lptokenAddr;
 
-        lpInfo[lptokenAddr] = [addrToken0,addrToken1];
+        _lpInfo[lptokenAddr] = [addrToken0,addrToken1];
 
         return lptokenAddr;
     }
@@ -451,7 +457,7 @@ contract AnchorSwap is IAMM{
         findStableLpToken[addrToken0][addrToken1] = lptokenAddr;
         findStableLpToken[addrToken1][addrToken0] = lptokenAddr;
 
-        lpInfo[lptokenAddr] = [addrToken0,addrToken1];
+        _lpInfo[lptokenAddr] = [addrToken0,addrToken1];
 
         return lptokenAddr;
     }
@@ -477,6 +483,14 @@ contract AnchorSwap is IAMM{
 
     function getA(address _lpAddr) public view returns(uint){
         return stablelpParameterA[_lpAddr];
+    }
+
+    function lpInfo(address _lpAddr) public view returns(address [2] memory){
+        return _lpInfo[_lpAddr];
+    }
+
+    function getLpSwapStatic(address _lpAddr) public view returns(bool){
+        return _lpSwapStatic[_lpAddr];
     }
 
     //数据更新
