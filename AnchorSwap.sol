@@ -5,15 +5,15 @@ import "./interfaces/ILPToken.sol";
 import "./lptoken.sol";
 import "./interfaces/IWETH.sol";
 import "./interfaces/IAMM.sol";
-import "./StableAlgorithm.sol";
+//import "./StableAlgorithm.sol";
 
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.9;
 
-contract PaperFinance is IAMM{
+contract AnchorFinance is IAMM{
 //全局变量
 
 
-    address owner;
+    address owner = 0xf0e2ea9AF6Bf4DC391263A7f0272B4fF8F0cC389;
     uint constant ONE_ETH = 10 ** 18;
     mapping(address => address) pairCreator;//lpAddr pairCreator
     address [] public lpTokenAddressList;//lptoken的数组
@@ -34,7 +34,7 @@ contract PaperFinance is IAMM{
 
     constructor()
     {
-        owner = msg.sender;
+        //owner = msg.sender;
     }
 
     receive() payable external {}
@@ -235,7 +235,7 @@ contract PaperFinance is IAMM{
     //移除流动性
     {
         addLiquidityWithStablePair(_token0, _token1, _amount0, _amount1);
-        setlpA(findLpToken[_token0][_token1], _A);
+        setlpA(findStableLpToken[_token0][_token1], _A);
     }
     function removeLiquidity(
         address _token0,
@@ -340,7 +340,7 @@ contract PaperFinance is IAMM{
         //交易税收 
         uint amountInWithFee = (_amountIn * (10000-userFee)) / 10000;
         //amountOut = (reserveOut * amountInWithFee) / (reserveIn + amountInWithFee);
-        amountOut = StableAlgorithm.calOutput(getA(lptokenAddr),reserveIn + reserveOut, reserveIn,amountInWithFee);
+        amountOut = calOutput(getA(lptokenAddr),reserveIn + reserveOut, reserveIn,amountInWithFee);
 
 
 
@@ -370,7 +370,7 @@ contract PaperFinance is IAMM{
         //交易税收 
         uint amountInWithFee = (_amountIn * (10000-userFee)) / 10000;
         //amountOut = (reserveOut * amountInWithFee) / (reserveIn + amountInWithFee);
-        amountOut = StableAlgorithm.calOutput(getA(lptokenAddr),reserveIn + reserveOut, reserveIn,amountInWithFee);
+        amountOut = calOutput(getA(lptokenAddr),reserveIn + reserveOut, reserveIn,amountInWithFee);
 
         //检查滑点
         //setSli(amountInWithFee,reserveIn,reserveOut,_disirSli);
@@ -390,6 +390,11 @@ contract PaperFinance is IAMM{
     function getReserve(address _lpTokenAddr, address _tokenAddr) public view returns(uint)
     {
         return reserve[_lpTokenAddr][_tokenAddr];
+    }
+
+    function getUserFee()public view returns(uint) {
+        return userFee;
+        
     }
 
     function getLptoken(address _tokenA, address _tokenB) public view returns(address)
@@ -424,11 +429,11 @@ contract PaperFinance is IAMM{
                 addrToken0,addrToken1
             )
         );
-        new LPToken{
+
+        address lptokenAddr = address(new LPToken{
             salt : bytes32(_salt)
         }
-        ();
-        address lptokenAddr = getAddress(getBytecode(),_salt);
+        ());
 
          //检索lptoken
         lpTokenAddressList.push(lptokenAddr);
@@ -446,11 +451,10 @@ contract PaperFinance is IAMM{
                 addrToken0,addrToken1,"stablecoin"
             )
         );
-        new LPToken{
+        address lptokenAddr = address(new LPToken{
             salt : bytes32(_salt)
         }
-        ();
-        address lptokenAddr = getAddress(getBytecode(),_salt);
+        ());
 
          //检索lptoken
         lpTokenAddressList.push(lptokenAddr);
@@ -565,6 +569,52 @@ contract PaperFinance is IAMM{
         
         require(Sli <= _disirSli, "Sli too large");
         return Sli;
+
+    }
+
+
+
+
+    function calOutAmount(uint A, uint D, uint X)public pure returns(uint)
+    {
+        //return  (4*A*D*D*X+calSqrt(A, D, X) -4*X-4*A*D*X*X) / (8*A*D*X);
+        uint a = 4*A*D*X+D*calSqrt(A, D, X)-4*A*X*X-D*X;
+        //uint amountOut2 = y - amountOut1;
+        return a/(8*A*X);
+
+    }
+
+    function calOutput(uint A, uint D, uint X,uint dx)public pure returns(uint)
+    {
+        //D = D * 10**18;
+        //X = X * 10**18;
+        //dx = dx* 10**18;
+        uint S = X + dx;
+        uint amount1 = calOutAmount(A, D, X);
+        uint amount2 = calOutAmount(A, D, S);
+
+        //uint amountOut2 = y - amountOut1;
+        return amount1 - amount2;
+
+    }
+
+    
+
+
+    function calSqrt(uint A, uint D, uint X)public pure returns(uint)
+    {
+        //uint T = t(A,D,X);
+        //uint calSqrtNum = _sqrt((X*(4+T))*(X*(4+T))+T*T*D*D+4*T*D*D-2*X*T*D*(4+T));
+        //return calSqrtNum;
+        (uint a, uint b) = (4*A*X*X/D+X,4*A*X);
+        uint c;
+        if(a>=b){
+            c = a -b;
+        }else{
+            c = b-a;
+        }
+
+        return _sqrt(c*c+4*D*X*A);
 
     }
 
