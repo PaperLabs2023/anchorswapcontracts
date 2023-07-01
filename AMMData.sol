@@ -49,17 +49,32 @@ contract AMMData{
             
     }
 
+    function cacalTokenOutAmountWithStableCoin(address _tokenIn, address _tokenOut, uint _amountIn) public view returns(uint reserveIn,uint reserveOut,uint amountOut){
+        require(_amountIn > 0, "amount in = 0");
+        require(_tokenIn != _tokenOut);
+
+        address lptokenAddr = amm.getStableLptoken(_tokenIn,_tokenOut);
+        reserveIn = amm.getReserve(lptokenAddr,_tokenIn);
+        reserveOut = amm.getReserve(lptokenAddr,_tokenOut);
+
+
+
+        //交易税收 
+        uint amountInWithFee = (_amountIn * (10000-amm.getUserFee())) / 10000;
+        //amountOut = (reserveOut * amountInWithFee) / (reserveIn + amountInWithFee);
+        amountOut = calOutput(amm.getA(lptokenAddr),reserveIn + reserveOut, reserveIn,amountInWithFee);
+
+
+
+    }
+
     function cacalTokenOutAmount(address _tokenIn, address _tokenOut, uint _tokenInAmount) public view returns(uint tokenOutAmount)
     {
         address lptokenAddr = amm.getLptoken(_tokenIn,_tokenOut);
         uint reserveIn = amm.getReserve(lptokenAddr, _tokenIn);
         uint reserveOut = amm.getReserve(lptokenAddr,_tokenOut);
-        if(amm.isStablePair(lptokenAddr)){
 
-            tokenOutAmount = calOutput(amm.getA(lptokenAddr),reserveIn + reserveOut, reserveIn,_tokenInAmount);
-        }else{
-            tokenOutAmount = (reserveOut * _tokenInAmount) / (reserveIn + _tokenInAmount);
-        }
+        tokenOutAmount = (reserveOut * _tokenInAmount) / (reserveIn + _tokenInAmount);
     }
 
     function cacalLpTokenAddAmount(address _tokenA, address _tokenB, uint _amountA) public view returns(uint _amountB)
