@@ -419,21 +419,7 @@ contract AnchorFinance is IAMM{
         return findStableLpToken[_tokenA][_tokenB];
     }
 
-    function lptokenTotalSupply(address _token0, address _token1, address user) public view returns(uint)
-    {
-        ILPToken lptoken;
-        lptoken = ILPToken(findLpToken[_token0][_token1]);
-        uint userTotalSupply = lptoken.balanceOf(user);
-        return userTotalSupply;
-    }
 
-    function stableLptokenTotalSupply(address _token0, address _token1, address user) public view returns(uint)
-    {
-        ILPToken lptoken;
-        lptoken = ILPToken(findStableLpToken[_token0][_token1]);
-        uint userTotalSupply = lptoken.balanceOf(user);
-        return userTotalSupply;
-    }
 
     function getLptokenLength() public view returns(uint)
     {
