@@ -5,6 +5,7 @@ import "./StableAlgorithm.sol";
 import "./interfaces/ILPToken.sol";
 import "./IERC20.sol";
 
+
 pragma solidity ^0.8.9;
 
 
@@ -99,6 +100,67 @@ contract AMMData{
 
         amount0 = (_shares * amm.getReserve(lptokenAddr,_token0)) / lptoken.totalSupply();//share * totalsuply/bal0
         amount1 = (_shares * amm.getReserve(lptokenAddr,_token1)) / lptoken.totalSupply();
+    }
+
+    function getRemoveLiquidityAmountStableLp(
+        address _token0,
+        address _token1,
+        uint _shares
+    ) public view  returns (uint amount0, uint amount1) {
+        ILPToken lptoken;//lptoken接口，为了mint 和 burn lptoken
+        address lptokenAddr = amm.getStableLptoken(_token0,_token1);
+
+        lptoken = ILPToken(lptokenAddr);
+
+
+        amount0 = (_shares * amm.getReserve(lptokenAddr,_token0)) / lptoken.totalSupply();//share * totalsuply/bal0
+        amount1 = (_shares * amm.getReserve(lptokenAddr,_token1)) / lptoken.totalSupply();
+    }
+
+    function lptokenTotalSupplyForUser(address _token0, address _token1, address user) public view returns(uint)
+    {
+        ILPToken lptoken;
+        lptoken = ILPToken(amm.getLptoken(_token0,_token1));
+        uint userTotalSupply = lptoken.balanceOf(user);
+        return userTotalSupply;
+    }
+
+    function stableLptokenTotalSupplyForUser(address _token0, address _token1, address user) public view returns(uint)
+    {
+        ILPToken lptoken;
+        lptoken = ILPToken(amm.getStableLptoken(_token0,_token1));
+        uint userTotalSupply = lptoken.balanceOf(user);
+        return userTotalSupply;
+    }
+
+    function lptokenTotalSupply(address _token0, address _token1) public view returns(uint)
+    {
+        ILPToken lptoken;
+        lptoken = ILPToken(amm.getLptoken(_token0,_token1));
+        uint TotalSupply = lptoken.totalSupply();
+        return TotalSupply;
+    }
+
+    function stableLptokenTotalSupply(address _token0, address _token1) public view returns(uint)
+    {
+        ILPToken lptoken;
+        lptoken = ILPToken(amm.getStableLptoken(_token0,_token1));
+        uint TotalSupply = lptoken.totalSupply();
+        return TotalSupply;
+    }
+
+    function calAddStableLiquidityAmount(address _token0, address _token1, uint _amount0) public view returns (uint amount1) {
+        address lptokenAddr = amm.getStableLptoken(_token1,_token0);
+        //require(isStablePair[lptokenAddr],"not StablePair");
+        amount1 =   amm.getReserve(lptokenAddr,_token1) * _amount0 / amm.getReserve(lptokenAddr,_token0);
+
+    }
+
+    function calAddLiquidityAmount(address _token0, address _token1, uint _amount0) public view returns (uint amount1) {
+        address lptokenAddr = amm.getLptoken(_token1,_token0);
+        //require(isStablePair[lptokenAddr],"not StablePair");
+        amount1 =   amm.getReserve(lptokenAddr,_token1) * _amount0 / amm.getReserve(lptokenAddr,_token0);
+
     }
 
 
