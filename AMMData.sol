@@ -50,7 +50,7 @@ contract AMMData{
             
     }
 
-    function cacalTokenOutAmountWithStableCoin(address _tokenIn, address _tokenOut, uint _amountIn) public view returns(uint reserveIn,uint reserveOut,uint amountOut){
+    function cacalTokenOutAmountWithStableCoin(address _tokenIn, address _tokenOut, uint _amountIn) public view returns(uint reserveIn,uint reserveOut,uint amountOut, uint priceImpact){
         require(_amountIn > 0, "amount in = 0");
         require(_tokenIn != _tokenOut);
 
@@ -61,9 +61,18 @@ contract AMMData{
 
 
         //交易税收 
-        uint amountInWithFee = (_amountIn * (10000-amm.getUserFee())) / 10000;
+        uint amountInWithFee = (_amountIn * (100000-amm.getStableLpFee()-amm.getFundFee())) / 100000;
         //amountOut = (reserveOut * amountInWithFee) / (reserveIn + amountInWithFee);
         amountOut = calOutput(amm.getA(lptokenAddr),reserveIn + reserveOut, reserveIn,amountInWithFee);
+
+        reserveIn += _amountIn;
+        reserveOut -= amountOut;
+
+        uint amountOut2 = calOutput(amm.getA(lptokenAddr),reserveIn + reserveOut, reserveIn,amountInWithFee);
+
+        priceImpact = (amountOut - amountOut2)*ONE_ETH/amountOut;
+
+
 
 
 
