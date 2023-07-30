@@ -59,7 +59,7 @@ contract Pools{
             reserveBArray[i] = amm.getReserve(lpAddr, tokenAB[1]);
             lpArray[i] = lpAddr;
             //(, ,price[i]) = cacalTokenOutAmountWithStableCoin(tokenAB[0], tokenAB[1],parameter);
-            profit[i] = profitPerYear(lpAddr) * ONE_ETH / reserveAArray[i] + reserveBArray[i];
+            profit[i] = profitPerYear(lpAddr) * ONE_ETH / (reserveAArray[i] + reserveBArray[i]);
 
         }
 
@@ -79,7 +79,7 @@ contract Pools{
 
 
         //交易税收 
-        uint amountInWithFee = (_amountIn * (10000-amm.getUserFee())) / 10000;
+        uint amountInWithFee = (_amountIn * (100000-amm.getStableLpFee()-amm.getFundFee())) / 100000;
         //amountOut = (reserveOut * amountInWithFee) / (reserveIn + amountInWithFee);
         amountOut = calOutput(amm.getA(lptokenAddr),reserveIn + reserveOut, reserveIn,amountInWithFee);
 
