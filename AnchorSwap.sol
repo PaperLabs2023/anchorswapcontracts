@@ -21,6 +21,7 @@ contract AnchorFinance is AccessControl{
     address [] _stableLpTokenAddressList;
     mapping(address => mapping(address => uint)) reserve;//第一个address是lptoken的address ，第2个是相应token的资产，uint是资产的amount
     uint lpFee;//fee to pool
+    uint stableLpFee;
     uint fundFee;
     //检索lptoken
     mapping(address => mapping(address => address)) public findLpToken;
@@ -67,6 +68,10 @@ contract AnchorFinance is AccessControl{
 
     function setLpFee(uint fee) external onlyRole(FEE_CONTROL_ROLE){
         lpFee = fee;// dx / 100000
+    }
+
+    function setStableLpFee(uint fee) external onlyRole(FEE_CONTROL_ROLE){
+        stableLpFee = fee;// dx / 100000
     }
 
     function setFundFee(uint fee)external onlyRole(FEE_CONTROL_ROLE){
@@ -357,7 +362,7 @@ contract AnchorFinance is AccessControl{
 
 
         //交易税收 
-        uint amountInWithFee = (_amountIn * (100000-lpFee - fundFee)) / 100000;
+        uint amountInWithFee = (_amountIn * (100000-lpFee-fundFee)) / 100000;
         tokenIn.transfer(fundAddr,fundFee * _amountIn / 100000);
         amountOut = (reserveOut * amountInWithFee) / (reserveIn + amountInWithFee);
 
@@ -368,6 +373,10 @@ contract AnchorFinance is AccessControl{
         tokenOut.transfer(msg.sender, amountOut);
         uint totalReserve0 = reserve[lptokenAddr][_tokenIn] + _amountIn; 
         uint totalReserve1 = reserve[lptokenAddr][_tokenOut] - amountOut;
+
+        uint profit = lpFee * _amountIn / 100000;
+
+        _lpProfit[lptokenAddr] += profit;
 
         _update(lptokenAddr,_tokenIn, _tokenOut, totalReserve0, totalReserve1);
 
@@ -399,7 +408,7 @@ contract AnchorFinance is AccessControl{
 
 
         //交易税收 
-        uint amountInWithFee = (_amountIn * (100000-lpFee-fundFee)) / 100000;
+        uint amountInWithFee = (_amountIn * (100000-stableLpFee-fundFee)) / 100000;
         tokenIn.transfer(fundAddr,fundFee * _amountIn / 100000);
         //amountOut = (reserveOut * amountInWithFee) / (reserveIn + amountInWithFee);
         amountOut = calOutput(getA(lptokenAddr),reserveIn + reserveOut, reserveIn,amountInWithFee);
@@ -413,7 +422,7 @@ contract AnchorFinance is AccessControl{
         uint totalReserve0 = reserve[lptokenAddr][_tokenIn] + _amountIn; 
         uint totalReserve1 = reserve[lptokenAddr][_tokenOut] - amountOut;
 
-        uint profit = lpFee * _amountIn / 100000;
+        uint profit = stableLpFee * _amountIn / 100000;
 
         _lpProfit[lptokenAddr] += profit;
 
@@ -428,9 +437,18 @@ contract AnchorFinance is AccessControl{
         return reserve[_lpTokenAddr][_tokenAddr];
     }
 
-    function getuserFee()public view returns(uint) {
+    function getLpFee()public view returns(uint) {
         return lpFee;
         
+    }
+
+    function getStableLpFee()public view returns(uint) {
+        return stableLpFee;
+        
+    }
+
+    function getFundFee()public view returns(uint) {
+        return fundFee;
     }
 
     function getLptoken(address _tokenA, address _tokenB) public view returns(address)
